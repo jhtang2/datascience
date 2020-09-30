@@ -1,0 +1,118 @@
+# This is a sample Python script.
+
+# Press Shift+F10 to execute it or replace it with your code.
+# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+
+
+from selenium import webdriver
+import time
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+import warnings
+warnings.filterwarnings('ignore')
+import smtplib, ssl
+from email.mime.multipart import MIMEMultipart
+from email.utils import formatdate
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
+from tqdm import tqdm
+
+# code starts here
+for i in tqdm(range(1), desc='code running'):
+    browser = webdriver.Chrome(executable_path=r"insert path here")
+    base_url = 'insert website url'
+    browser.get(base_url)
+    SCROLL_PAUSE_TIME = 0.5
+
+    # Get scroll height
+    last_height = browser.execute_script("return document.body.scrollHeight")
+
+    while True:
+        # Scroll down to bottom
+        browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+        # Wait to load page
+        time.sleep(SCROLL_PAUSE_TIME)
+
+        # Calculate new scroll height and compare with last scroll height
+        new_height = browser.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+
+    element = browser.find_element_by_link_text('News')
+    print('Clicking into:', browser.find_element_by_link_text('News').text)
+    element.click()
+
+    data = []
+
+    for page in range(0, 1, 1):
+        headers = {
+            'User-agent': 'user agent here'}
+        r = requests.get(base_url, headers=headers)
+        c = r.content
+        soup = BeautifulSoup(c, 'html.parser')
+        all = soup.find_all('div', {'class': 'media-body'})[1:]
+
+        for item in all:
+            d = {}
+            d['title'] = item.find('a').text
+            d['link'] = item.find('a').get('href')
+            data.append(d)
+
+        # instead of list, print the extracted data as body text
+        body = []
+        for item in all:
+            title = item.find('a').text
+            link = item.find('a').get('href')
+            x = ' '.join([title, link, '\n'])
+            body.append(x)
+    txt_content = str(("\r\n".join(body)))
+    #html_content = str(("\r\n".join(body)))
+
+    pd.DataFrame(data).to_excel('testingautomation.xlsx')
+
+    file = 'testingautomation.xlsx'
+    port = 465
+    username = 'username'
+    password = 'password!'
+    send_from = 'from user@gmail.com'
+    send_to = 'to user@yahoo.com'
+
+    msg = MIMEMultipart()
+    msg['From'] = send_from
+    msg['To'] = send_to
+    msg['Date'] = formatdate(localtime=True)
+    msg['Subject'] = 'subject'
+
+    # including a message body via plain text or html
+
+    plain_text_body = MIMEText(txt_content, 'plain')
+    msg.attach(plain_text_body)
+
+    # html_body = MIMEText(html_content,'html')
+    # msg.attach(html_body)
+
+    context = ssl.create_default_context()
+    server = smtplib.SMTP_SSL('smtp.gmail.com', port, context=context)
+    fp = open(file, 'rb')
+    part = MIMEBase('application', 'vnd.ms-excel')
+    part.set_payload(fp.read())
+    fp.close()
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', 'attachment', filename='testingautomation.xlsx')
+    msg.attach(part)
+    server.ehlo()
+    server.login(username, password)
+    server.sendmail(send_from, send_to.split(','), msg.as_string())
+
+    print('email sent')
+
+
+# Press the green button in the gutter to run the script.
+if __name__ == '__efinancial__':
+    print('Efinancial')
+    func()
+
